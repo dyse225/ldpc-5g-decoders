@@ -1,0 +1,3 @@
+# Keep diagnostic runs separate from the submitted final results.
+results/smoke/
+results/trial/
