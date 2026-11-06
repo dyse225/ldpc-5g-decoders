@@ -1,7 +1,0 @@
-PASS nms_alpha: 8 complete curves
-PASS oms_beta: 5 complete curves
-PASS nms_iterations: 5 complete curves
-PASS oms_iterations: 5 complete curves
-RESULT_VALIDATION_PASSED: 115 points / 23 curves / 4 experiments (final)
-CODE_ANALYZER_MESSAGES 0
-FINAL_CHECKS_PASSED
