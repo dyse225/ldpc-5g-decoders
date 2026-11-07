@@ -1,5 +1,5 @@
 function res = ldpc_simulate(p)
-%LDPC_SIMULATE Монте-Карло моделирование 5G NR LDPC линии в канале AWGN.
+%LDPC_SIMULATE Монте-Карло моделирование 5G NR LDPC линии (AWGN или Rayleigh).
 %   res = LDPC_SIMULATE(p), p — структура из LDPC_DEFAULT_PARAMS.
 %
 %   Цепочка: источник -> nrLDPCEncode -> согласование скорости -> модулятор
@@ -10,6 +10,13 @@ function res = ldpc_simulate(p)
 %   перемежения): в канал идут первые E = K/R бит выхода nrLDPCEncode
 %   (первые 2*Zc систематических бит кодер уже выколол), на приёме
 %   непереданные биты получают LLR = 0.
+%
+%   Канал p.channel:
+%     'awgn'     — только шум;
+%     'rayleigh' — плоские замирания, независимые для каждого символа
+%                  (идеальное перемежение), h ~ CN(0,1), E|h|^2 = 1;
+%                  приёмник знает h точно: z = y/h, дисперсия шума
+%                  символа nVar/|h|^2 передаётся в демодулятор.
 %
 %   res — структура с полями EbN0dB, ber, fer, avgIter, numFrames,
 %   numBitErrors, numFrameErrors, timePerFrame, codeName, K, N, E, params.
@@ -81,9 +88,17 @@ for iPt = 1:nPts
         end
 
         x = modulate(c(:), p.modulation);
-        % мощность сигнала задана явно: 0 дБВт (единичная мощность созвездия)
-        [y, nVar] = awgn(x, snrdB, 0, stream);
-        llr = reshape(demodulate(y, p.modulation, nVar), E, B);
+        % мощность сигнала до замираний 0 дБВт (единичная мощность созвездия),
+        % E|h|^2 = 1, поэтому SNR задаётся относительно 0 дБВт в обоих каналах
+        if strcmpi(p.channel, 'rayleigh')
+            h = (randn(stream, size(x)) + 1i*randn(stream, size(x))) / sqrt(2);
+            [y, nVar] = awgn(h .* x, snrdB, 0, stream);
+            llr = demodulate(y ./ h, p.modulation, nVar ./ abs(h).^2);
+        else
+            [y, nVar] = awgn(x, snrdB, 0, stream);
+            llr = demodulate(y, p.modulation, nVar);
+        end
+        llr = reshape(llr, E, B);
 
         if isCoded
             t0 = tic;
@@ -93,7 +108,8 @@ for iPt = 1:nPts
                 if strcmp(p.algorithm, 'wbf')
                     [uHat, iters] = ldpc_wbf_decode(llrBf, Hbf, K, p.wbfMaxFlips, p.wbfAlpha, true);
                 else
-                    [uHat, iters] = ldpc_bitflip_decode(llrBf, Hbf, K, p.maxIter, p.bfRule, p.bfOnFail);
+                    [uHat, iters] = ldpc_bitflip_decode(llrBf, Hbf, K, p.maxIter, ...
+                        p.bfRule, p.bfOnFail, p.bfThreshold, p.bfMaxFlips);
                 end
             else
                 llrFull = [llr; zeros(N - E, B)];  % непереданные биты: LLR = 0
@@ -170,12 +186,19 @@ end
 end
 
 function llr = demodulate(y, mod, nVar)
-% Точные LLR: log(P(b=0)/P(b=1)), положительное -> бит 0 (соглашение nrLDPCDecode)
+% Точные LLR: log(P(b=0)/P(b=1)), положительное -> бит 0 (соглашение nrLDPCDecode).
+% nVar — скаляр или вектор (своя дисперсия для каждого символа). Вектор
+% демодуляторы принимают только для символов, записанных строкой, поэтому
+% в этом случае подаём строку и разворачиваем результат (биты символа подряд).
 k = bits_per_symbol(mod);
+if ~isscalar(nVar)
+    y = y(:).'; nVar = nVar(:).';
+end
 if k == 1
     llr = pskdemod(y, 2, 0, 'gray', OutputType='llr', NoiseVariance=nVar);
 else
     llr = qamdemod(y, 2^k, 'gray', OutputType='llr', ...
         UnitAveragePower=true, NoiseVariance=nVar);
 end
+llr = llr(:);
 end
