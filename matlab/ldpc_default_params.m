@@ -13,6 +13,7 @@ p.rate = 1/2;                 % скорость после согласован
 p.modulation = 'bpsk';
 
 % Канал
+p.channel = 'awgn';           % 'awgn' | 'rayleigh' (плоские замирания на символ)
 p.EbN0dB = 0:0.25:2;          % Eb/N0 на информационный бит, дБ (FER до ~1e-4)
 
 % Декодер
@@ -26,6 +27,9 @@ p.termination = 'early';      % 'early' (синдром = 0) | 'max'
 p.bfRule      = 'gallager';   % bit-flip: 'gallager' | 'phbf' (как в оригинале)
 p.bfOnFail    = 'final';      % bit-flip при неудаче: 'final' (итоговое состояние)
                               % | 'channel' (решение канала, как в оригинале)
+p.bfThreshold = 0;            % bit-flip: инвертировать биты, у которых невыполненных
+                              % проверок >= max - bfThreshold (0 — только максимум)
+p.bfMaxFlips  = Inf;          % bit-flip: максимум инвертируемых бит за итерацию
 p.wbfAlpha    = 0.7;          % WBF: коэффициент MWBF (0 -> обычный WBF)
 p.wbfMaxFlips = 300;          % WBF: максимум итераций (1 инверсия за итерацию)
 
