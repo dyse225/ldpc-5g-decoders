@@ -55,12 +55,8 @@ end
 
 save(fullfile(resDir, 'bf_preprocess.mat'), 'results', 'labels', 'quick');
 
-% --- график: BER, FER и суммарное число итераций
-c = get(groot, 'defaultAxesColorOrder');
-o = struct('layout', 'column', 'xlim', [p0.EbN0dB(1) p0.EbN0dB(end)], ...
-    'berLim', [1e-5 0.3], 'ferLim', [1e-4 1], 'colors', c);
-fig = ldpc_plot_results(results, labels, sprintf( ...
-    'BF с предобработкой мягким декодером, %s, BPSK', results(1).codeName), o);
+% --- график: FER, BER и суммарное число итераций
+fig = plot_bf_preprocess(fullfile(resDir, 'bf_preprocess.mat'));
 exportgraphics(fig, fullfile(resDir, 'bf_preprocess.png'), 'Resolution', 150);
 
 % --- таблица и CSV
