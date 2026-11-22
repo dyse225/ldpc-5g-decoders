@@ -34,6 +34,9 @@ end
 if ~isempty(titleStr), title(tl, titleStr, 'FontSize', fs + 2); end
 
 ax = gobjects(1, 3);
+if isprop(fig, 'Theme')
+    fig.Theme = 'light';
+end
 ylab = {'BER', 'FER', 'Ср. число итераций'};
 for k = 1:3
     ax(k) = nexttile(tl);
@@ -67,6 +70,10 @@ else
     lg = legend(ax(2), 'Location', 'southeast');
 end
 lg.FontSize = fs;
+set(ax, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', ...
+        'GridColor', [0.85 0.85 0.85], 'MinorGridColor', [0.92 0.92 0.92], ...
+        'GridAlpha', 1, 'MinorGridAlpha', 1);
+title(tl, titleStr, 'Color', 'k');
 end
 
 % -------------------------------------------------------------------------
